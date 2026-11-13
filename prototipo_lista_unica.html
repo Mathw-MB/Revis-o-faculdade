@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lista Única do Perfil – Protótipo</title>
+<style>
+/* Um único mundo visual: simulação de tela de CRM (estilo Lightning), tema claro.
+   Layout: barra global + navegação por abas + página de registro em duas colunas. */
+:root {
+  --brand: #0176d3;
+  --brand-dark: #014486;
+  --bg: #eef1f6;
+  --card: #ffffff;
+  --border: #dddbda;
+  --text: #181818;
+  --muted: #5c5c5c;
+  --ok: #2e844a;
+  --ok-bg: #ebf7e6;
+  --warn: #8c4b02;
+  --warn-bg: #fef1e2;
+  --err: #ba0517;
+  --err-bg: #fdecea;
+  --proto: #fff4cc;
+  --font: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.45; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Faixa de protótipo */
+.proto { background: var(--proto); border-bottom: 1px solid #e8d48a; padding: 6px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 13px; }
+.proto strong { font-weight: 700; }
+.linkbtn { background: none; border: none; color: var(--brand-dark); text-decoration: underline; padding: 0; }
+
+/* Cabeçalho global */
+.global { background: #fff; border-bottom: 1px solid var(--border); padding: 8px 16px; display: flex; align-items: center; gap: 16px; }
+.waffle { width: 32px; height: 32px; display: grid; grid-template-columns: repeat(3, 6px); gap: 3px; align-content: center; justify-content: center; border-radius: 4px; }
+.waffle span { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.appname { font-size: 18px; font-weight: 600; white-space: nowrap; }
+.search { flex: 1; max-width: 520px; margin: 0 auto; border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; color: var(--muted); background: #fafaf9; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--brand-dark); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+
+/* Navegação */
+nav.tabs { background: #fff; border-bottom: 3px solid var(--brand); display: flex; overflow-x: auto; padding: 0 8px; }
+nav.tabs a { padding: 10px 14px; color: var(--text); text-decoration: none; border-bottom: 3px solid transparent; margin-bottom: -3px; white-space: nowrap; }
+nav.tabs a[aria-current="page"] { border-bottom-color: var(--brand-dark); font-weight: 600; color: var(--brand-dark); background: #f3f8fd; }
+nav.tabs a .tag { font-size: 11px; background: var(--ok-bg); color: var(--ok); border-radius: 10px; padding: 1px 6px; margin-left: 4px; }
+
+main { padding: 16px; max-width: 1360px; margin: 0 auto; display: grid; gap: 16px; }
+.view { display: none; gap: 16px; }
+.view.active { display: grid; }
+
+/* Cartões */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+.card > header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.card > header h2 { margin: 0; font-size: 15px; font-weight: 700; text-wrap: balance; }
+.card .body { padding: 14px 16px; display: grid; gap: 12px; }
+.sub { color: var(--muted); font-size: 12.5px; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.stack { display: grid; gap: 16px; }
+@media (max-width: 960px) { .cols { grid-template-columns: 1fr; } }
+
+/* Painel de destaques do registro */
+.highlights { padding: 14px 16px; display: grid; gap: 12px; }
+.hl-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.objicon { width: 36px; height: 36px; border-radius: 6px; background: #fcb95b; display: grid; place-items: center; color: #fff; font-weight: 800; }
+.hl-title { display: grid; }
+.hl-title small { color: var(--muted); font-size: 12px; }
+.hl-title b { font-size: 18px; }
+.hl-fields { display: flex; gap: 28px; flex-wrap: wrap; }
+.hl-fields div { display: grid; }
+.hl-fields span { font-size: 12px; color: var(--muted); }
+.hl-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Caminho (path) */
+.path { display: flex; gap: 2px; overflow-x: auto; }
+.path li { list-style: none; flex: 1; min-width: 110px; text-align: center; padding: 7px 10px; background: #e5e5e5; color: var(--text); font-size: 13px; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%, 10px 50%); }
+.path li:first-child { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); border-radius: 14px 0 0 14px; }
+.path li.done { background: var(--ok); color: #fff; }
+.path li.current { background: var(--brand-dark); color: #fff; font-weight: 600; }
+.path li.lost { background: var(--err); color: #fff; font-weight: 600; }
+ul.path { margin: 0; padding: 0; }
+
+/* Formulários */
+.form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; }
+@media (max-width: 560px) { .form { grid-template-columns: 1fr; } }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 12.5px; color: var(--muted); }
+.field select, .field input, textarea { border: 1px solid var(--border); border-radius: 4px; padding: 7px 8px; background: #fff; width: 100%; }
+textarea { min-height: 220px; resize: vertical; font-family: var(--font); line-height: 1.5; }
+
+/* Botões */
+.btn { border: 1px solid var(--border); background: #fff; color: var(--brand); border-radius: 4px; padding: 6px 14px; font-weight: 600; }
+.btn:hover { background: #f3f3f3; }
+.btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+.btn.primary:hover { background: var(--brand-dark); }
+.btn.danger { color: var(--err); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.sm { padding: 3px 10px; font-size: 12.5px; }
+
+/* Pílulas de estado */
+.pill { display: inline-block; font-size: 12px; font-weight: 600; border-radius: 12px; padding: 2px 9px; white-space: nowrap; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.err { background: var(--err-bg); color: var(--err); }
+.pill.info { background: #e5f1fb; color: var(--brand-dark); }
+.pill.grey { background: #ececec; color: #444; }
+
+/* Lista de documentos */
+.group { display: grid; gap: 6px; }
+.group h3 { margin: 4px 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.doc { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: 4px; background: #fff; }
+.doc .n { min-width: 22px; height: 22px; border-radius: 50%; background: #e5f1fb; color: var(--brand-dark); font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.doc.internal { background: #f7f9fb; border-style: dashed; }
+.doc .why { color: var(--muted); font-size: 12px; }
+.alert { padding: 10px 12px; border-radius: 4px; border-left: 4px solid; font-size: 13.5px; }
+.alert.err { background: var(--err-bg); border-color: var(--err); }
+.alert.warn { background: var(--warn-bg); border-color: #dd7a01; }
+.alert.ok { background: var(--ok-bg); border-color: var(--ok); }
+.alert.info { background: #e5f1fb; border-color: var(--brand); }
+
+
+/* Tabelas */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { background: #f3f3f3; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: #444; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: #f3f8fd; }
+tr.selected td { background: #e5f1fb; }
+
+/* Checklist do analista */
+.check { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 4px; align-items: center; }
+.check.is-ok { border-left: 4px solid var(--ok); }
+.check.is-pend { border-left: 4px solid var(--err); background: #fffafa; }
+.check.locked { background: #f7f9f7; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.seg button { border: none; background: #fff; padding: 5px 12px; font-weight: 600; font-size: 12.5px; color: var(--muted); }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"].okb { background: var(--ok); color: #fff; }
+.seg button[aria-pressed="true"].pendb { background: var(--err); color: #fff; }
+.check .detail { grid-column: 1 / -1; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 8px; }
+@media (max-width: 560px) { .check .detail { grid-template-columns: 1fr; } }
+.progress { height: 6px; background: #e5e5e5; border-radius: 3px; overflow: hidden; }
+.progress > div { height: 100%; background: var(--brand); }
+
+/* Indicadores e gráficos */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.kpi { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; display: grid; gap: 2px; }
+.kpi span { font-size: 12px; color: var(--muted); }
+.kpi b { font-size: 26px; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.kpi small { color: var(--muted); font-size: 12px; }
+.chart svg { width: 100%; height: auto; display: block; }
+.chart text { font-family: var(--font); fill: var(--text); font-size: 12px; }
+.chart .val { font-variant-numeric: tabular-nums; font-weight: 600; }
+.chart .grid { stroke: #eee; }
+.source { font-size: 12px; color: var(--muted); border-top: 1px dashed var(--border); padding-top: 8px; }
+.twocharts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 960px) { .twocharts { grid-template-columns: 1fr; } }
+
+/* Linha do tempo */
+.timeline { display: grid; gap: 8px; }
+.timeline div { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; font-size: 13px; }
+.timeline time { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Aviso flutuante */
+.toast { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: var(--ok); color: #fff; padding: 10px 18px; border-radius: 4px; box-shadow: 0 4px 14px rgba(0,0,0,.2); z-index: 10; max-width: min(560px, calc(100% - 32px)); font-weight: 600; display: none; }
+.toast.show { display: block; }
+.toast.warn { background: #a04a00; }
+.inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.empty { color: var(--muted); padding: 10px 0; }
+</style>
+</head>
+<body>
+
+<div class="proto">
+  <span><strong>Protótipo para discussão</strong> · simula telas do CRM da proposta · regras e dados fictícios (exceto a aba <em>Diagnóstico</em>, com dados reais agregados)</span>
+  <button class="linkbtn" id="resetBtn" type="button">Reiniciar demonstração</button>
+</div>
+
+<div class="global">
+  <div class="waffle" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="appname">Home Equity</div>
+  <div class="search" aria-hidden="true">Pesquisar propostas, clientes…</div>
+  <div class="avatar" title="Usuário da demonstração">MB</div>
+</div>
+
+<nav class="tabs" aria-label="Seções">
+  <a href="#proposta" data-view="proposta">Proposta (Consultor)</a>
+  <a href="#fila" data-view="fila">Fila do Middle Pré <span class="tag" id="filaCount">0</span></a>
+  <a href="#registro" data-view="registro">Registro de pendências</a>
+  <a href="#painel" data-view="painel">Painel do Middle Pré</a>
+  <a href="#diagnostico" data-view="diagnostico">Diagnóstico (dados reais)</a>
+</nav>
+
+<main>
+
+<!-- ================= PROPOSTA ================= -->
+<section class="view" id="view-proposta">
+  <div class="card highlights">
+    <div class="hl-top">
+      <div class="objicon" aria-hidden="true">OP</div>
+      <div class="hl-title"><small>Oportunidade</small><b id="hlTitle">—</b></div>
+      <div class="hl-actions">
+        <label for="opSelect" class="sub">Abrir proposta</label>
+        <select id="opSelect"></select>
+      </div>
+    </div>
+    <div class="hl-fields" id="hlFields"></div>
+    <ul class="path" id="path"></ul>
+  </div>
+
+  <div class="cols">
+    <div class="stack">
+      <div class="card">
+        <header><h2>Perfil do cliente</h2><span class="sub">Define quais documentos serão exigidos</span></header>
+        <div class="body">
+          <div class="form" id="profileForm"></div>
+          <div id="profileCheck"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <header>
+          <h2>Documentos exigidos para este perfil</h2>
+          <button class="btn primary" id="genBtn" type="button">Gerar lista de documentos</button>
+        </header>
+        <div class="body" id="docList"></div>
+      </div>
+    </div>
+
+    <div class="stack">
+      <div class="card" id="pendCard"></div>
+
+      <div class="card">
+        <header>
+          <h2>Mensagem pronta para o cliente</h2>
+          <button class="btn" id="copyBtn" type="button">Copiar mensagem</button>
+        </header>
+        <div class="body">
+          <textarea id="msgBox" readonly aria-label="Mensagem para o cliente"></textarea>
+          <span class="sub">O consultor envia pelo canal que já usa (WhatsApp). Nenhum canal novo para o cliente.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <header><h2>Ações do consultor</h2></header>
+        <div class="body" id="actions"></div>
+      </div>
+
+      <div class="card">
+        <header><h2>Histórico da proposta</h2></header>
+        <div class="body"><div class="timeline" id="timeline"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FILA ================= -->
+<section class="view" id="view-fila">
+  <div class="card">
+    <header><h2>Fila de pré-análise</h2><span class="sub">Ordenada pelo tempo de espera · clique para abrir</span></header>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Oportunidade</th><th>Cliente</th><th>Consultor</th><th class="num">Rodada</th><th class="num">Na fila há</th><th>Itens a conferir</th></tr></thead>
+      <tbody id="filaBody"></tbody>
+    </table></div>
+  </div>
+
+  <div class="card" id="analysisCard"></div>
+
+  <div class="card">
+    <header><h2>Simulação: decisão do Crédito</h2><span class="sub">Só para a demonstração. Na prática, essa decisão acontece no Esparta, pelo time de Crédito.</span></header>
+    <div class="body"><span class="sub">Serve para mostrar o que acontece depois: se o Crédito aprova, o consultor é avisado; se devolve, a pendência entra no mesmo registro, com motivo padronizado, e a proposta volta para o consultor.</span></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Oportunidade</th><th>Cliente</th><th>Rodada</th><th>Simular a decisão do Crédito</th></tr></thead>
+      <tbody id="creditoBody"></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= REGISTRO ================= -->
+<section class="view" id="view-registro">
+  <div class="card">
+    <header>
+      <h2>Registro de pendências</h2>
+      <div class="inline">
+        <label class="sub" for="fOrigem">Origem</label>
+        <select id="fOrigem"><option value="">Todas</option><option>Middle Pré</option><option>Crédito</option></select>
+        <label class="sub" for="fStatus">Situação</label>
+        <select id="fStatus"><option value="">Todas</option><option>Aberta</option><option>Resolvida</option></select>
+      </div>
+    </header>
+    <div class="body">
+      <span class="sub">Cada linha é uma devolução (rodada), com todos os itens e motivos de uma vez. É o dado que hoje não existe em nenhum sistema.</span>
+    </div>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Data</th><th>Código</th><th>Oportunidade</th><th>Cliente</th><th class="num">Rodada</th><th>Origem</th><th>Itens e motivos</th><th>Situação</th></tr></thead>
+      <tbody id="regBody"></tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= PAINEL ================= -->
+<section class="view" id="view-painel">
+  <div class="alert info">Painel com <b>dados fictícios de demonstração</b> (6 semanas simuladas + o que você fizer no protótipo). Mostra as perguntas que o Middle Pré passaria a conseguir responder.</div>
+  <div class="kpis" id="kpis"></div>
+  <div class="twocharts">
+    <div class="card"><header><h2>Itens que mais geram pendência</h2></header><div class="body chart" id="chItens"></div></div>
+    <div class="card"><header><h2>Rodadas até a documentação completa</h2></header><div class="body chart" id="chRodadas"></div></div>
+    <div class="card"><header><h2>Motivo da pendência</h2></header><div class="body chart" id="chMotivos"></div></div>
+    <div class="card"><header><h2>Desistência por rodada</h2></header><div class="body chart" id="chDesist"><span class="sub">Pergunta que hoje ninguém consegue responder: o cliente desiste mais quando a documentação vai e volta?</span></div></div>
+  </div>
+</section>
+
+<!-- ================= DIAGNÓSTICO ================= -->
+<section class="view" id="view-diagnostico">
+  <div class="alert ok"><b>Dados reais, agregados.</b> Relatório de pendências do Crédito (180 dias) e documento "Principais solicitações". Nenhum dado de cliente.</div>
+  <div class="kpis">
+    <div class="kpi"><span>Devoluções do Crédito</span><b>3.143</b><small>em 2.114 propostas · 180 dias</small></div>
+    <div class="kpi"><span>Propostas devolvidas 2+ vezes</span><b>32,4%</b><small>685 propostas · 219 com 3+</small></div>
+    <div class="kpi"><span>Devoluções repetidas</span><b>1.029</b><small>33% das devoluções (2ª em diante)</small></div>
+    <div class="kpi"><span>Pré-análise: espera × execução</span><b>211 × 14</b><small>minutos · só 6% do tempo é análise</small></div>
+    <div class="kpi"><span>Cliente não responde ou desiste</span><b>24,6%</b><small>das propostas com pendência</small></div>
+  </div>
+  <div class="twocharts">
+    <div class="card"><header><h2>Devoluções por proposta</h2></header><div class="body chart" id="dDist"></div></div>
+    <div class="card"><header><h2>Motivos agrupados por categoria</h2></header><div class="body chart" id="dCat"></div></div>
+  </div>
+  <div class="card"><header><h2>Os 10 motivos mais frequentes (80% do total)</h2></header><div class="body chart" id="dTop"></div></div>
+  <div class="card">
+    <header><h2>O que isso diz para o desenho</h2></header>
+    <div class="body">
+      <div class="alert info"><b>Conferência guiada pelo perfil.</b> Entre o que escapa da pré-análise, aparecem itens que dependem do perfil do cliente: cadastro do cônjuge (180), autorização (126), garantidor (92). Uma lista gerada pelo perfil não depende de memória.</div>
+      <div class="alert warn"><b>Sem canal novo para o cliente.</b> 597 pendências são de cliente que não responde. Criar mais um pedido, por outro canal, aumentaria o risco justamente onde ele já existe. A proposta usa o canal atual com um pedido único e completo.</div>
+      <div class="alert info"><b>Medir antes de automatizar.</b> O vai e vem entre Middle Pré e consultor não aparece em nenhum relatório; 22% das pendências do próprio Crédito estão como "Outros". O registro padronizado é a base para as próximas decisões.</div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+"use strict";
+
+/* ---------- Regras de documentação por perfil (fictícias) ---------- */
+var CASADO = ["Casado(a)", "União estável"];
+var RULES = [
+  { id: "id", g: "Proponente", n: "Documento de identidade (RG ou CNH, com CPF)", w: function () { return true; } },
+  { id: "res", g: "Proponente", n: "Comprovante de residência emitido há até 90 dias", w: function () { return true; } },
+  { id: "civil", g: "Proponente", n: function (p) {
+      return { "Solteiro(a)": "Certidão de nascimento", "Casado(a)": "Certidão de casamento",
+        "União estável": "Escritura ou declaração de união estável", "Divorciado(a)": "Certidão de casamento com averbação do divórcio",
+        "Viúvo(a)": "Certidão de casamento e certidão de óbito" }[p.civil]; }, w: function () { return true; } },
+  { id: "cid", g: "Cônjuge", n: "Documento de identidade do cônjuge (RG ou CNH)", w: function (p) { return CASADO.indexOf(p.civil) >= 0; } },
+  { id: "ccad", g: "Cônjuge", n: "Dados cadastrais do cônjuge (CPF, profissão, renda)", w: function (p) { return CASADO.indexOf(p.civil) >= 0; } },
+  { id: "anu", g: "Cônjuge", n: "Autorização do cônjuge (anuência)", w: function (p) { return CASADO.indexOf(p.civil) >= 0 && p.regime !== "Separação total"; },
+    why: "exigida porque o regime não é separação total" },
+  { id: "hol", g: "Renda", n: "3 últimos holerites", w: function (p) { return p.renda === "Assalariado"; } },
+  { id: "ext", g: "Renda", n: "Extratos bancários dos últimos 6 meses", w: function (p) { return p.renda === "Autônomo / Profissional liberal"; } },
+  { id: "irpf", g: "Renda", n: "Declaração de IRPF completa com recibo", w: function (p) { return p.renda === "Autônomo / Profissional liberal" || p.renda === "Empresário (PJ)"; } },
+  { id: "cs", g: "Renda", n: "Contrato social consolidado", w: function (p) { return p.renda === "Empresário (PJ)"; } },
+  { id: "extpj", g: "Renda", n: "Extratos da empresa dos últimos 6 meses", w: function (p) { return p.renda === "Empresário (PJ)"; } },
+  { id: "inss", g: "Renda", n: "Extrato do benefício (INSS)", w: function (p) { return p.renda === "Aposentado"; } },
+  { id: "mat", g: "Imóvel", n: "Matrícula do imóvel emitida há até 30 dias", w: function () { return true; } },
+  { id: "iptu", g: "Imóvel", n: "Capa do IPTU do ano vigente", w: function () { return true; } },
+  { id: "cond", g: "Imóvel", n: "Declaração de quitação do condomínio", w: function (p) { return p.cond === "Sim"; } },
+  { id: "gid", g: "Garantidor", n: "Documento de identidade do garantidor", w: function (p) { return p.prop === "Terceiro (garantidor)"; } },
+  { id: "gcad", g: "Garantidor", n: "Dados cadastrais do garantidor", w: function (p) { return p.prop === "Terceiro (garantidor)"; } },
+  { id: "gaut", g: "Garantidor", n: "Autorização do garantidor", w: function (p) { return p.prop === "Terceiro (garantidor)"; } }
+];
+var GROUPS = ["Proponente", "Cônjuge", "Renda", "Imóvel", "Garantidor"];
+var MOTIVOS = ["Ausente", "Vencido ou fora do prazo", "Ilegível", "Divergente", "Incompleto"];
+var CRED_MOTIVOS = ["Documento ou cadastro ausente", "Dado da proposta incorreto", "Cliente não responde", "Análise de crédito ou renda"];
+var DESIST = ["Cliente não responde", "Seguiu com outro parceiro", "Desistiu da operação", "Condições não atenderam"];
+var FIELDS = [
+  { k: "civil", l: "Estado civil", o: ["Solteiro(a)", "Casado(a)", "União estável", "Divorciado(a)", "Viúvo(a)"] },
+  { k: "regime", l: "Regime de bens", o: ["—", "Comunhão parcial", "Comunhão universal", "Separação total"] },
+  { k: "renda", l: "Tipo de renda", o: ["Assalariado", "Autônomo / Profissional liberal", "Empresário (PJ)", "Aposentado"] },
+  { k: "prop", l: "Imóvel em nome de", o: ["Cliente", "Cliente e cônjuge", "Terceiro (garantidor)"] },
+  { k: "cond", l: "Imóvel em condomínio", o: ["Não", "Sim"] }
+];
+
+function nameOf(r, p) { return typeof r.n === "function" ? r.n(p) : r.n; }
+function required(p) { return RULES.filter(function (r) { return r.w(p); }); }
+function profileErrors(p) {
+  var e = [];
+  if (CASADO.indexOf(p.civil) >= 0 && p.regime === "—") e.push("Informe o regime de bens: o cliente é " + p.civil.toLowerCase() + ".");
+  if (CASADO.indexOf(p.civil) < 0 && p.regime !== "—") e.push("Regime de bens preenchido, mas o estado civil é " + p.civil.toLowerCase() + ".");
+  if (p.prop === "Cliente e cônjuge" && CASADO.indexOf(p.civil) < 0) e.push("Imóvel em nome do cliente e do cônjuge, mas o estado civil não indica cônjuge.");
+  return e;
+}
+
+/* ---------- Utilidades ---------- */
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function fmt(n, d) { return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 }); }
+function brl(n) { return "R$ " + fmt(n); }
+function nowStr() { var d = new Date(); return d.toLocaleDateString("pt-BR") + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }); }
+function toast(msg, warn) { var t = $("toast"); t.textContent = msg; t.className = "toast show" + (warn ? " warn" : ""); clearTimeout(t._h); t._h = setTimeout(function () { t.className = "toast"; }, 3200); }
+function rng(seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+/* ---------- Estado inicial ---------- */
+function seedState() {
+  var ops = [
+    { id: "OP-104512", cliente: "Maria Souza", consultor: "Rafael Costa", valor: 280000, imovel: 720000,
+      p: { civil: "Casado(a)", regime: "Comunhão parcial", renda: "Assalariado", prop: "Cliente e cônjuge", cond: "Sim" },
+      status: "documentacao", rodada: 0, items: {}, lista: false, filaMin: 0,
+      hist: [{ t: "10/11 09:12", x: "Proposta criada pelo consultor" }] },
+    { id: "OP-104498", cliente: "Carlos Mendes", consultor: "Juliana Alves", valor: 450000, imovel: 1100000,
+      p: { civil: "Solteiro(a)", regime: "—", renda: "Empresário (PJ)", prop: "Cliente", cond: "Não" },
+      status: "pre_analise", rodada: 1, items: {}, lista: true, filaMin: 214,
+      hist: [{ t: "11/11 10:02", x: "Lista de documentos gerada (12 itens)" }, { t: "12/11 08:40", x: "Documentos enviados ao Middle Pré (rodada 1)" }] },
+    { id: "OP-104477", cliente: "Ana Ribeiro", consultor: "Rafael Costa", valor: 190000, imovel: 540000,
+      p: { civil: "União estável", regime: "Comunhão parcial", renda: "Autônomo / Profissional liberal", prop: "Terceiro (garantidor)", cond: "Não" },
+      status: "pre_analise", rodada: 2, items: {}, lista: true, filaMin: 96,
+      hist: [{ t: "05/11 14:20", x: "Lista de documentos gerada" }, { t: "06/11 11:05", x: "Pendência PEN-0141 registrada (rodada 1): 2 itens" }, { t: "12/11 10:15", x: "Cliente reenviou; devolvida à fila (rodada 2)" }] },
+    { id: "OP-104460", cliente: "João Pereira", consultor: "Juliana Alves", valor: 320000, imovel: 860000,
+      p: { civil: "Divorciado(a)", regime: "—", renda: "Assalariado", prop: "Cliente", cond: "Sim" },
+      status: "credito", rodada: 1, items: {}, lista: true, filaMin: 0,
+      hist: [{ t: "07/11 09:30", x: "Lista de documentos gerada" }, { t: "11/11 16:10", x: "Pré-análise concluída na 1ª rodada; enviada ao Crédito" }] },
+    { id: "OP-104455", cliente: "Fernanda Lima", consultor: "Bruno Teixeira", valor: 600000, imovel: 1500000,
+      p: { civil: "Casado(a)", regime: "Separação total", renda: "Empresário (PJ)", prop: "Cliente", cond: "Não" },
+      status: "pre_analise", rodada: 1, items: {}, lista: true, filaMin: 47,
+      hist: [{ t: "12/11 11:20", x: "Documentos enviados ao Middle Pré (rodada 1)" }] }
+  ];
+  /* Ana: na rodada 1 tudo OK exceto 2 itens, que voltam para conferência */
+  required(ops[2].p).forEach(function (r) { ops[2].items[r.id] = { st: (r.id === "anu" || r.id === "gaut") ? null : "ok", okR: 1, prev: (r.id === "anu" ? "Ausente" : r.id === "gaut" ? "Ausente" : "") }; });
+  ops.forEach(function (o) { if (o.status === "credito") required(o.p).forEach(function (r) { o.items[r.id] = { st: "ok", okR: 1 }; }); });
+
+  var regs = [
+    { cod: "PEN-0141", data: "06/11/2026", op: "OP-104477", cliente: "Ana Ribeiro", rodada: 1, origem: "Middle Pré",
+      itens: [{ n: "Autorização do cônjuge (anuência)", m: "Ausente" }, { n: "Autorização do garantidor", m: "Ausente" }], status: "Resolvida" }
+  ];
+  return { ops: ops, regs: regs, cur: "OP-104512", sel: null, seq: 142, history: buildHistory() };
+}
+
+/* Histórico fictício de 6 semanas para o painel */
+function buildHistory() {
+  var r = rng(20261112), out = [];
+  var W = { res: 4, civil: 2, cid: 2, ccad: 3, anu: 4, hol: 2, ext: 2, irpf: 2, cs: 2, mat: 4, iptu: 1, cond: 2, gid: 1, gcad: 2, gaut: 3 };
+  var civis = FIELDS[0].o, rendas = FIELDS[2].o;
+  for (var i = 0; i < 160; i++) {
+    var p = { civil: civis[Math.floor(r() * 5)], renda: rendas[Math.floor(r() * 4)], cond: r() < .45 ? "Sim" : "Não", prop: r() < .12 ? "Terceiro (garantidor)" : "Cliente" };
+    p.regime = CASADO.indexOf(p.civil) >= 0 ? (r() < .8 ? "Comunhão parcial" : "Separação total") : "—";
+    var pool = required(p).filter(function (x) { return !x.internal; });
+    var x = r(), rod = x < .55 ? 1 : x < .83 ? 2 : x < .94 ? 3 : 4;
+    var pend = [];
+    for (var k = 1; k < rod; k++) {
+      var nItems = 1 + Math.floor(r() * 3);
+      for (var j = 0; j < nItems; j++) {
+        var tot = 0; pool.forEach(function (q) { tot += W[q.id] || 1; });
+        var pick = r() * tot, acc = 0, chosen = pool[0];
+        for (var z = 0; z < pool.length; z++) { acc += W[pool[z].id] || 1; if (pick <= acc) { chosen = pool[z]; break; } }
+        var m = r(); pend.push({ n: nameOf(chosen, p), m: m < .5 ? "Ausente" : m < .72 ? "Vencido ou fora do prazo" : m < .86 ? "Divergente" : m < .95 ? "Incompleto" : "Ilegível" });
+      }
+    }
+    var desist = r() < (0.03 + 0.06 * (rod - 1));
+    out.push({ rod: rod, pend: pend, dias: Math.max(1, Math.round(rod * 2.4 + r() * 3 - 1)), desist: desist });
+  }
+  return out;
+}
+
+var KEY = "listaUnicaPerfil_v1";
+var S;
+function load() { try { var s = localStorage.getItem(KEY); if (s) { S = JSON.parse(s); return; } } catch (e) {} S = seedState(); }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function cur() { return S.ops.filter(function (o) { return o.id === S.cur; })[0]; }
+function op(id) { return S.ops.filter(function (o) { return o.id === id; })[0]; }
+function stamp(o, x) { var d = new Date(); o.hist.push({ t: d.toLocaleDateString("pt-BR").slice(0, 5) + " " + d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), x: x }); }
+
+/* ---------- Mensagens ---------- */
+function clientMessage(o) {
+  var first = o.cliente.split(" ")[0];
+  var req = required(o.p).filter(function (r) { return !r.internal; });
+  var lines = ["Olá, " + first + "! Para seguirmos com a análise do seu crédito com garantia de imóvel, preciso que você envie os documentos abaixo. Pode mandar por aqui mesmo, todos de uma vez ou aos poucos.", ""];
+  var n = 1;
+  GROUPS.forEach(function (g) {
+    var it = req.filter(function (r) { return r.g === g; });
+    if (!it.length) return;
+    lines.push("*" + (g === "Proponente" ? "Seus documentos" : g === "Renda" ? "Comprovação de renda" : g) + "*");
+    it.forEach(function (r) { lines.push(n++ + ". " + nameOf(r, o.p)); });
+    lines.push("");
+  });
+  lines.push("Assim que eu receber tudo, já encaminho para análise. Qualquer dúvida, é só me chamar.");
+  lines.push(o.consultor);
+  return lines.join("\n");
+}
+function pendMessage(o, reg) {
+  var first = o.cliente.split(" ")[0];
+  var lines = ["Olá, " + first + "! Revisamos sua documentação e faltam só estes itens para seguir:", ""];
+  reg.itens.forEach(function (it, i) { lines.push((i + 1) + ". " + it.n + " (" + it.m.toLowerCase() + ")"); });
+  lines.push(""); lines.push("Os demais documentos já estão OK. Pode me mandar por aqui mesmo."); lines.push(o.consultor);
+  return lines.join("\n");
+}
+
+/* ---------- Render: Proposta ---------- */
+var STAGES = [["documentacao", "Documentação"], ["pre_analise", "Pré-análise"], ["credito", "Crédito"], ["aprovada", "Contrato"]];
+var STATUS_LABEL = { documentacao: "Documentação", pre_analise: "Pré-análise (na fila)", pendente: "Pendência com o cliente", credito: "No Crédito",
+  aprovada: "Aprovada", reprovada: "Reprovada", desistiu: "Desistência registrada" };
+function stageIndex(st) { return { documentacao: 0, pendente: 0, pre_analise: 1, credito: 2, aprovada: 3, reprovada: 3, desistiu: -1 }[st]; }
+
+function renderProposta() {
+  var o = cur();
+  $("opSelect").innerHTML = S.ops.map(function (x) { return '<option value="' + x.id + '"' + (x.id === o.id ? " selected" : "") + ">" + x.id + " · " + esc(x.cliente) + "</option>"; }).join("");
+  $("hlTitle").textContent = o.id + " · " + o.cliente;
+  var stClass = o.status === "desistiu" || o.status === "reprovada" ? "err" : o.status === "pendente" ? "warn" : o.status === "aprovada" ? "ok" : "info";
+  $("hlFields").innerHTML =
+    '<div><span>Situação</span><b><span class="pill ' + stClass + '">' + STATUS_LABEL[o.status] + "</span></b></div>" +
+    "<div><span>Consultor</span><b>" + esc(o.consultor) + "</b></div>" +
+    "<div><span>Valor solicitado</span><b>" + brl(o.valor) + "</b></div>" +
+    "<div><span>Valor do imóvel</span><b>" + brl(o.imovel) + "</b></div>" +
+    "<div><span>Rodadas de documentação</span><b>" + o.rodada + "</b></div>";
+  var si = stageIndex(o.status);
+  $("path").innerHTML = [["", "Proposta"]].concat(STAGES).map(function (s, i) {
+    var cls = "";
+    if (o.status === "desistiu") cls = i === 0 ? "done" : i === 1 ? "lost" : "";
+    else if (i === 0 || i - 1 < si) cls = "done"; else if (i - 1 === si) cls = o.status === "reprovada" ? "lost" : "current";
+    var label = (o.status === "desistiu" && i === 1) ? "Desistência" : (o.status === "reprovada" && i === 4) ? "Reprovada" : s[1];
+    return '<li class="' + cls + '">' + label + "</li>";
+  }).join("");
+
+  var locked = o.status !== "documentacao";
+  $("profileForm").innerHTML = FIELDS.map(function (f) {
+    var dis = locked || (f.k === "regime" && CASADO.indexOf(o.p.civil) < 0 && o.p.regime === "—");
+    return '<div class="field"><label for="pf_' + f.k + '">' + f.l + '</label><select id="pf_' + f.k + '" data-k="' + f.k + '"' + (dis ? " disabled" : "") + ">" +
+      f.o.map(function (v) { return "<option" + (o.p[f.k] === v ? " selected" : "") + ">" + v + "</option>"; }).join("") + "</select></div>";
+  }).join("");
+  var errs = profileErrors(o.p);
+  $("profileCheck").innerHTML = locked ? '<span class="sub">Perfil travado: a lista já foi enviada ao cliente.</span>' :
+    errs.length ? '<div class="alert err"><b>Verificação do perfil:</b> ' + errs.map(esc).join(" ") + "</div>" :
+    '<div class="alert ok">Perfil consistente. A lista pode ser gerada.</div>';
+
+  var req = required(o.p);
+  var html = "";
+  if (!o.lista) html += '<div class="alert info">Este perfil exige <b>' + req.filter(function (r) { return !r.internal; }).length + " documentos do cliente</b>. Clique em <b>Gerar lista</b> para montar o pedido.</div>";
+  var n = 1;
+  GROUPS.forEach(function (g) {
+    var it = req.filter(function (r) { return r.g === g; });
+    if (!it.length) return;
+    html += '<div class="group"><h3>' + g + (g === "Consultas internas" ? " · feitas pelo banco, não vão para o cliente" : "") + "</h3>";
+    it.forEach(function (r) {
+      html += '<div class="doc' + (r.internal ? " internal" : "") + '"><span class="n">' + (r.internal ? "⚙" : n++) + "</span><div><div>" + esc(nameOf(r, o.p)) + "</div>" +
+        (r.why ? '<div class="why">' + r.why + "</div>" : r.internal ? '<div class="why">Disparada automaticamente antes do envio ao Crédito</div>' : "") + "</div></div>";
+    });
+    html += "</div>";
+  });
+  $("docList").innerHTML = html;
+  $("genBtn").disabled = locked || errs.length > 0;
+  $("genBtn").textContent = o.lista ? "Lista gerada ✓" : "Gerar lista de documentos";
+  $("msgBox").value = o.lista ? clientMessage(o) : "A mensagem aparece aqui depois que a lista for gerada.";
+  $("copyBtn").disabled = !o.lista;
+
+  var open = S.regs.filter(function (r) { return r.op === o.id && r.status === "Aberta"; }).slice(-1)[0];
+  $("pendCard").style.display = open ? "" : "none";
+  if (open) {
+    $("pendCard").innerHTML = '<header><h2>Pendência aberta · ' + open.cod + '</h2><span class="pill warn">Rodada ' + open.rodada + " · origem: " + open.origem + "</span></header>" +
+      '<div class="body"><span class="sub">Pedido consolidado para repassar ao cliente (uma única mensagem):</span><textarea id="pendMsg" readonly style="min-height:150px">' + esc(pendMessage(o, open)) + '</textarea><div class="inline"><button class="btn" id="copyPend" type="button">Copiar pedido</button></div></div>';
+    $("copyPend").onclick = function () { copy($("pendMsg").value); };
+  }
+
+  var a = "";
+  if (o.status === "documentacao") a += '<button class="btn primary" id="sendMiddle" type="button"' + (o.lista ? "" : " disabled") + ">Documentos recebidos → enviar ao Middle Pré</button>";
+  if (o.status === "pendente") a += '<button class="btn primary" id="resend" type="button">Cliente reenviou → devolver à fila do Middle</button>';
+  if (o.status === "documentacao" || o.status === "pendente") {
+    a += '<div class="inline"><label class="sub" for="desMot">Motivo da desistência</label><select id="desMot">' + DESIST.map(function (d) { return "<option>" + d + "</option>"; }).join("") +
+      '</select><button class="btn danger" id="desBtn" type="button">Registrar desistência</button></div>';
+  }
+  if (!a) a = '<span class="sub">Nenhuma ação pendente para o consultor nesta etapa (' + STATUS_LABEL[o.status].toLowerCase() + ").</span>";
+  $("actions").innerHTML = a;
+  if ($("sendMiddle")) $("sendMiddle").onclick = function () {
+    o.status = "pre_analise"; o.rodada = 1; o.filaMin = 0; o.enq = Date.now();
+    required(o.p).forEach(function (r) { o.items[r.id] = { st: null, okR: 0 }; });
+    stamp(o, "Documentos enviados ao Middle Pré (rodada 1)"); save(); render(); toast("Proposta enviada à fila do Middle Pré.");
+  };
+  if ($("resend")) $("resend").onclick = function () {
+    S.regs.forEach(function (r) { if (r.op === o.id && r.status === "Aberta") r.status = "Resolvida"; });
+    o.status = "pre_analise"; o.rodada += 1; o.filaMin = 0; o.enq = Date.now();
+    stamp(o, "Cliente reenviou; devolvida à fila (rodada " + o.rodada + ")"); save(); render(); toast("Devolvida à fila. Só os itens pendentes voltam para conferência.");
+  };
+  if ($("desBtn")) $("desBtn").onclick = function () {
+    var m = $("desMot").value; o.status = "desistiu"; o.desMot = m;
+    S.regs.forEach(function (r) { if (r.op === o.id && r.status === "Aberta") r.status = "Resolvida"; });
+    S.history.push({ rod: Math.max(1, o.rodada), pend: [], dias: 0, desist: true, live: true });
+    stamp(o, "Desistência registrada: " + m + " (rodada " + o.rodada + ")"); save(); render(); toast("Desistência registrada com motivo.", true);
+  };
+  $("timeline").innerHTML = o.hist.slice().reverse().map(function (h) { return "<div><time>" + esc(h.t) + "</time><span>" + esc(h.x) + "</span></div>"; }).join("");
+}
+
+/* ---------- Render: Fila e pré-análise ---------- */
+function waitMin(o) { return o.enq ? Math.max(1, Math.round((Date.now() - o.enq) / 60000)) : o.filaMin; }
+function fmtWait(m) { return m >= 60 ? Math.floor(m / 60) + " h " + (m % 60) + " min" : m + " min"; }
+function toCheck(o) { return required(o.p).filter(function (r) { var it = o.items[r.id]; return !r.internal && !(it && it.st === "ok" && it.okR < o.rodada); }); }
+
+function renderFila() {
+  var q = S.ops.filter(function (o) { return o.status === "pre_analise"; }).sort(function (a, b) { return waitMin(b) - waitMin(a); });
+  $("filaCount").textContent = q.length;
+  $("filaBody").innerHTML = q.length ? q.map(function (o) {
+    return '<tr class="clickable' + (S.sel === o.id ? " selected" : "") + '" data-id="' + o.id + '" tabindex="0"><td>' + o.id + "</td><td>" + esc(o.cliente) + "</td><td>" + esc(o.consultor) +
+      '</td><td class="num">' + o.rodada + '</td><td class="num">' + fmtWait(waitMin(o)) + "</td><td>" + toCheck(o).length + " item(ns)" + (o.rodada > 1 ? ' <span class="pill grey">só os pendentes</span>' : "") + "</td></tr>";
+  }).join("") : '<tr><td colspan="6" class="empty">Fila vazia.</td></tr>';
+  Array.prototype.forEach.call(document.querySelectorAll("#filaBody tr[data-id]"), function (tr) {
+    tr.onclick = function () { S.sel = tr.dataset.id; save(); renderFila(); };
+    tr.onkeydown = function (e) { if (e.key === "Enter") tr.onclick(); };
+  });
+  if (!S.sel || !q.some(function (o) { return o.id === S.sel; })) S.sel = q.length ? q[0].id : null;
+  renderAnalysis();
+
+  var c = S.ops.filter(function (o) { return o.status === "credito"; });
+  $("creditoBody").innerHTML = c.length ? c.map(function (o) {
+    return "<tr><td>" + o.id + "</td><td>" + esc(o.cliente) + "</td><td>" + o.rodada + '</td><td><div class="inline"><button class="btn sm" data-a="ap" data-id="' + o.id + '" type="button">Simular aprovação</button>' +
+      '<select data-m="' + o.id + '" aria-label="Motivo da pendência do Crédito">' + CRED_MOTIVOS.map(function (m) { return "<option>" + m + "</option>"; }).join("") +
+      '</select><button class="btn sm danger" data-a="pend" data-id="' + o.id + '" type="button">Simular pendência do Crédito</button></div></td></tr>';
+  }).join("") : '<tr><td colspan="4" class="empty">Nenhuma proposta no Crédito agora.</td></tr>';
+  Array.prototype.forEach.call(document.querySelectorAll("#creditoBody button"), function (b) {
+    b.onclick = function () {
+      var o = op(b.dataset.id);
+      if (b.dataset.a === "ap") { o.status = "aprovada"; stamp(o, "Crédito aprovou a proposta"); S.history.push({ rod: Math.max(1, o.rodada), pend: [], dias: 3, desist: false, live: true }); toast("Proposta aprovada. Consultor notificado automaticamente."); }
+      else {
+        var m = document.querySelector('select[data-m="' + o.id + '"]').value;
+        var reg = { cod: "PEN-" + String(S.seq++).padStart(4, "0"), data: new Date().toLocaleDateString("pt-BR"), op: o.id, cliente: o.cliente, rodada: o.rodada, origem: "Crédito", itens: [{ n: m, m: "Registrado pelo Crédito" }], status: "Aberta" };
+        S.regs.push(reg); o.status = "pendente"; stamp(o, "Pendência " + reg.cod + " registrada pelo Crédito: " + m); toast("Pendência do Crédito registrada no mesmo formato, e o consultor foi notificado.", true);
+      }
+      save(); render();
+    };
+  });
+}
+
+function renderAnalysis() {
+  var box = $("analysisCard"), o = S.sel ? op(S.sel) : null;
+  if (!o) { box.innerHTML = '<header><h2>Pré-análise</h2></header><div class="body"><span class="empty">Selecione uma proposta na fila.</span></div>'; return; }
+  var req = required(o.p), check = toCheck(o);
+  var evaluated = check.filter(function (r) { var it = o.items[r.id]; return it && it.st; }).length;
+  var pend = check.filter(function (r) { var it = o.items[r.id]; return it && it.st === "pend"; });
+  var html = "<header><h2>Pré-análise · " + o.id + " · " + esc(o.cliente) + '</h2><span class="pill info">Rodada ' + o.rodada + "</span></header>";
+  html += '<div class="body"><div class="inline sub">Perfil: ' + esc(o.p.civil) + (o.p.regime !== "—" ? " (" + esc(o.p.regime.toLowerCase()) + ")" : "") + " · " + esc(o.p.renda) + " · imóvel em nome de " + esc(o.p.prop.toLowerCase()) + (o.p.cond === "Sim" ? " · condomínio" : "") + "</div>";
+  html += '<div class="inline"><b>' + evaluated + " de " + check.length + "</b> itens conferidos" + (o.rodada > 1 ? ' <span class="pill grey">rodada ' + o.rodada + ": só os itens pendentes da rodada anterior</span>" : "") + '</div><div class="progress"><div style="width:' + (check.length ? evaluated / check.length * 100 : 100) + '%"></div></div>';
+  GROUPS.forEach(function (g) {
+    var it = req.filter(function (r) { return r.g === g; });
+    if (!it.length) return;
+    html += '<div class="group"><h3>' + g + "</h3>";
+    it.forEach(function (r) {
+      var s = o.items[r.id] || (o.items[r.id] = { st: null, okR: 0 });
+      if (r.internal) { html += '<div class="check is-ok locked"><div>' + esc(nameOf(r, o.p)) + '<div class="sub">Consultada automaticamente pelo sistema</div></div><span class="pill ok">OK automático</span></div>'; return; }
+      if (s.st === "ok" && s.okR < o.rodada) { html += '<div class="check is-ok locked"><div>' + esc(nameOf(r, o.p)) + '<div class="sub">Conferido na rodada ' + s.okR + '</div></div><span class="pill ok">OK</span></div>'; return; }
+      html += '<div class="check' + (s.st === "ok" ? " is-ok" : s.st === "pend" ? " is-pend" : "") + '"><div>' + esc(nameOf(r, o.p)) + (s.prev ? '<div class="sub">Pendente na rodada anterior: ' + esc(s.prev.toLowerCase()) + "</div>" : "") + "</div>" +
+        '<div class="seg" role="group" aria-label="Resultado"><button type="button" class="okb" data-r="' + r.id + '" data-v="ok" aria-pressed="' + (s.st === "ok") + '">OK</button><button type="button" class="pendb" data-r="' + r.id + '" data-v="pend" aria-pressed="' + (s.st === "pend") + '">Pendente</button></div>';
+      if (s.st === "pend") html += '<div class="detail"><select data-mot="' + r.id + '" aria-label="Motivo">' + MOTIVOS.map(function (m) { return "<option" + (s.m === m ? " selected" : "") + ">" + m + "</option>"; }).join("") + '</select><input data-obs="' + r.id + '" placeholder="Observação (opcional)" value="' + esc(s.obs || "") + '" aria-label="Observação"></div>';
+      html += "</div>";
+    });
+    html += "</div>";
+  });
+  var allDone = evaluated === check.length;
+  html += '<div class="inline"><button class="btn danger" id="regPend" type="button"' + (allDone && pend.length ? "" : " disabled") + ">Devolver ao consultor: pendência única (" + pend.length + " item" + (pend.length === 1 ? "" : "s") + ")</button>" +
+    '<button class="btn primary" id="toCredit" type="button"' + (allDone && !pend.length ? "" : " disabled") + ">Enviar ao Crédito</button>" +
+    '<span class="sub">' + (allDone ? (pend.length ? "Os itens pendentes viram um único registro e um único pedido ao consultor." : "Tudo conferido.") : "Confira todos os itens para concluir.") + "</span></div></div>";
+  box.innerHTML = html;
+
+  Array.prototype.forEach.call(box.querySelectorAll(".seg button"), function (b) {
+    b.onclick = function () { var s = o.items[b.dataset.r]; s.st = b.dataset.v; if (s.st === "pend" && !s.m) s.m = MOTIVOS[0]; if (s.st === "ok") s.okR = o.rodada; save(); renderAnalysis(); renderFilaCountOnly(); };
+  });
+  Array.prototype.forEach.call(box.querySelectorAll("select[data-mot]"), function (s) { s.onchange = function () { o.items[s.dataset.mot].m = s.value; save(); }; });
+  Array.prototype.forEach.call(box.querySelectorAll("input[data-obs]"), function (s) { s.oninput = function () { o.items[s.dataset.obs].obs = s.value; save(); }; });
+  $("regPend").onclick = function () {
+    var reg = { cod: "PEN-" + String(S.seq++).padStart(4, "0"), data: new Date().toLocaleDateString("pt-BR"), op: o.id, cliente: o.cliente, rodada: o.rodada, origem: "Middle Pré",
+      itens: pend.map(function (r) { var s = o.items[r.id]; return { n: nameOf(r, o.p), m: s.m + (s.obs ? " · " + s.obs : "") }; }), status: "Aberta" };
+    S.regs.push(reg);
+    pend.forEach(function (r) { var s = o.items[r.id]; s.prev = s.m; s.st = null; s.m = null; s.obs = ""; });
+    S.history.push({ rod: o.rodada, pend: reg.itens.map(function (i) { return { n: i.n, m: i.m.split(" · ")[0] }; }), dias: 0, desist: false, live: true, partial: true });
+    o.status = "pendente"; stamp(o, "Pendência " + reg.cod + " registrada (rodada " + o.rodada + "): " + reg.itens.length + " item(ns)"); S.sel = null; save(); render();
+    toast(reg.cod + " registrada. O consultor recebeu o pedido consolidado.");
+  };
+  $("toCredit").onclick = function () { o.status = "credito"; stamp(o, "Pré-análise concluída na rodada " + o.rodada + "; enviada ao Crédito"); S.sel = null; save(); render(); toast("Enviada ao Crédito."); };
+}
+function renderFilaCountOnly() { $("filaCount").textContent = S.ops.filter(function (o) { return o.status === "pre_analise"; }).length; }
+
+/* ---------- Render: Registro ---------- */
+function renderRegistro() {
+  var fo = $("fOrigem").value, fs = $("fStatus").value;
+  var rows = S.regs.filter(function (r) { return (!fo || r.origem === fo) && (!fs || r.status === fs); }).slice().reverse();
+  $("regBody").innerHTML = rows.length ? rows.map(function (r) {
+    return "<tr><td>" + r.data + "</td><td>" + r.cod + "</td><td>" + r.op + "</td><td>" + esc(r.cliente) + '</td><td class="num">' + r.rodada + "</td><td>" + r.origem + "</td><td>" +
+      r.itens.map(function (i) { return esc(i.n) + ' <span class="pill err">' + esc(i.m) + "</span>"; }).join("<br>") + '</td><td><span class="pill ' + (r.status === "Aberta" ? "warn" : "ok") + '">' + r.status + "</span></td></tr>";
+  }).join("") : '<tr><td colspan="8" class="empty">Nenhum registro com esse filtro.</td></tr>';
+}
+
+/* ---------- Gráficos (SVG) ---------- */
+function hbars(el, data, opt) {
+  opt = opt || {};
+  var w = 560, lw = opt.lw || 230, rh = 26, h = data.length * rh + 8, max = Math.max.apply(null, data.map(function (d) { return d.v; })) || 1;
+  var s = '<svg viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="' + esc(opt.title || "") + '">';
+  data.forEach(function (d, i) {
+    var y = i * rh + 4, bw = (w - lw - 70) * d.v / max;
+    s += '<text x="' + (lw - 8) + '" y="' + (y + 15) + '" text-anchor="end">' + esc(d.l.length > 38 ? d.l.slice(0, 37) + "…" : d.l) + "</text>";
+    s += '<rect x="' + lw + '" y="' + (y + 3) + '" width="' + Math.max(2, bw) + '" height="16" rx="2" fill="' + (d.c || opt.color || "#0176d3") + '"></rect>';
+    s += '<text class="val" x="' + (lw + bw + 6) + '" y="' + (y + 15) + '">' + (opt.fmt ? opt.fmt(d.v) : fmt(d.v)) + "</text>";
+  });
+  el.insertAdjacentHTML("beforeend", s + "</svg>" + (opt.src ? '<div class="source">' + opt.src + "</div>" : ""));
+}
+function vbars(el, data, opt) {
+  opt = opt || {};
+  var w = 520, h = 210, pad = 30, max = Math.max.apply(null, data.map(function (d) { return d.v; })) || 1, bw = (w - pad * 2) / data.length;
+  var s = '<svg viewBox="0 0 ' + w + " " + h + '" role="img" aria-label="' + esc(opt.title || "") + '">';
+  [0.5, 1].forEach(function (f) { var y = h - 30 - (h - 60) * f; s += '<line class="grid" x1="' + pad + '" x2="' + (w - pad) + '" y1="' + y + '" y2="' + y + '"></line>'; });
+  data.forEach(function (d, i) {
+    var bh = (h - 60) * d.v / max, x = pad + i * bw + bw * .18, y = h - 30 - bh;
+    s += '<rect x="' + x + '" y="' + y + '" width="' + bw * .64 + '" height="' + Math.max(1, bh) + '" rx="3" fill="' + (d.c || opt.color || "#0176d3") + '"></rect>';
+    s += '<text class="val" x="' + (x + bw * .32) + '" y="' + (y - 6) + '" text-anchor="middle">' + (opt.fmt ? opt.fmt(d.v) : fmt(d.v)) + "</text>";
+    s += '<text x="' + (x + bw * .32) + '" y="' + (h - 10) + '" text-anchor="middle">' + esc(d.l) + "</text>";
+  });
+  el.insertAdjacentHTML("beforeend", s + "</svg>" + (opt.src ? '<div class="source">' + opt.src + "</div>" : ""));
+}
+
+/* ---------- Render: Painel ---------- */
+function renderPainel() {
+  var H = S.history.filter(function (h) { return !h.partial; }), P = S.history;
+  var n = H.length, first = H.filter(function (h) { return h.rod === 1 && !h.desist; }).length;
+  var avgR = H.reduce(function (a, h) { return a + h.rod; }, 0) / n;
+  var docDone = H.filter(function (h) { return !h.desist && h.dias; });
+  var avgD = docDone.reduce(function (a, h) { return a + h.dias; }, 0) / (docDone.length || 1);
+  var des = H.filter(function (h) { return h.desist; }).length;
+  var fila = S.ops.filter(function (o) { return o.status === "pre_analise"; });
+  var oldest = fila.length ? Math.max.apply(null, fila.map(waitMin)) : 0;
+  $("kpis").innerHTML =
+    '<div class="kpi"><span>Propostas no período</span><b>' + n + "</b><small>últimas 6 semanas</small></div>" +
+    '<div class="kpi"><span>Completas na 1ª conferência</span><b>' + fmt(first / n * 100, 1) + "%</b><small>sem nenhuma pendência</small></div>" +
+    '<div class="kpi"><span>Rodadas por proposta</span><b>' + fmt(avgR, 2) + "</b><small>média até a documentação completa</small></div>" +
+    '<div class="kpi"><span>Até a documentação completa</span><b>' + fmt(avgD, 1) + " dias</b><small>média</small></div>" +
+    '<div class="kpi"><span>Desistências registradas</span><b>' + des + "</b><small>" + fmt(des / n * 100, 1) + "% das propostas</small></div>" +
+    '<div class="kpi"><span>Fila agora</span><b>' + fila.length + "</b><small>mais antiga: " + fmtWait(oldest) + "</small></div>";
+
+  var cnt = {}, mot = {};
+  P.forEach(function (h) { h.pend.forEach(function (p) { cnt[p.n] = (cnt[p.n] || 0) + 1; mot[p.m] = (mot[p.m] || 0) + 1; }); });
+  var items = Object.keys(cnt).map(function (k) { return { l: k, v: cnt[k] }; }).sort(function (a, b) { return b.v - a.v; }).slice(0, 8);
+  $("chItens").innerHTML = ""; hbars($("chItens"), items, { lw: 250, title: "Itens que mais geram pendência", src: "Fictício: contagem de itens pendentes no registro." });
+  var dist = [1, 2, 3, 4].map(function (r) { return { l: r === 4 ? "4+" : String(r), v: H.filter(function (h) { return Math.min(h.rod, 4) === r; }).length }; });
+  $("chRodadas").innerHTML = ""; vbars($("chRodadas"), dist, { title: "Rodadas", src: "Fictício: nº de propostas por quantidade de rodadas." });
+  var ms = Object.keys(mot).map(function (k) { return { l: k, v: mot[k] }; }).sort(function (a, b) { return b.v - a.v; });
+  $("chMotivos").innerHTML = ""; hbars($("chMotivos"), ms, { lw: 190, color: "#ba0517", title: "Motivos", src: "Fictício: motivo padronizado escolhido pelo analista." });
+  var dr = [1, 2, 3, 4].map(function (r) { var g = H.filter(function (h) { return Math.min(h.rod, 4) === r; }); return { l: (r === 4 ? "4+" : r) + " rodada" + (r > 1 ? "s" : ""), v: g.length ? g.filter(function (h) { return h.desist; }).length / g.length * 100 : 0, c: "#8c4b02" }; });
+  var el = $("chDesist"); el.innerHTML = '<span class="sub">Pergunta que hoje ninguém consegue responder: o cliente desiste mais quando a documentação vai e volta?</span>';
+  vbars(el, dr, { title: "Desistência por rodada", fmt: function (v) { return fmt(v, 1) + "%"; }, src: "Fictício: o padrão real só existirá depois do registro." });
+}
+
+/* ---------- Render: Diagnóstico (dados reais) ---------- */
+function renderDiag() {
+  var src1 = "Fonte: relatório de pendências do Crédito, 180 dias (3.442 motivos, 3.143 tarefas, 2.114 propostas).";
+  $("dDist").innerHTML = ""; vbars($("dDist"), [{ l: "1", v: 1429 }, { l: "2", v: 466 }, { l: "3", v: 141 }, { l: "4+", v: 78 }], { title: "Devoluções por proposta", src: src1 + " Eixo: nº de devoluções da mesma proposta." });
+  $("dCat").innerHTML = ""; hbars($("dCat"), [
+    { l: "Dado incorreto na entrada", v: 24.8 }, { l: "Análise de crédito, renda, garantia", v: 20.9, c: "#8a8a8a" }, { l: "Cliente não responde / desiste", v: 19.2, c: "#8c4b02" },
+    { l: "Documento ou cadastro ausente", v: 16.4 }, { l: "Bureau pendente (interno)", v: 11.4 }, { l: "Outros (não especificado)", v: 5.2, c: "#8a8a8a" }, { l: "Retrabalho do fluxo", v: 2.0 }
+  ], { lw: 240, title: "Categorias", fmt: function (v) { return fmt(v, 1) + "%"; }, src: "Classificação pelo texto do motivo (41 motivos em 7 categorias). % dos 3.442 motivos." });
+  $("dTop").innerHTML = ""; hbars($("dTop"), [
+    { l: "Taxa/Prazo/Amortização/Valor incorreto", v: 653 }, { l: "Proponente não responde HSM", v: 597, c: "#8c4b02" }, { l: "Avaliação do imóvel", v: 544, c: "#8a8a8a" },
+    { l: "Bureau PJ até 30 dias ausente", v: 259 }, { l: "Cadastro cônjuge ausente", v: 180 }, { l: "Outros", v: 180, c: "#8a8a8a" }, { l: "Documento de autorização ausente", v: 126 },
+    { l: "Garantidor ausente", v: 92 }, { l: "Telefone incorreto/terceiros", v: 81 }, { l: "Produto divergente", v: 72 }
+  ], { lw: 270, title: "Top 10 motivos", src: src1 });
+}
+
+/* ---------- Navegação ---------- */
+var VIEWS = ["proposta", "fila", "registro", "painel", "diagnostico"];
+function show() {
+  var v = (location.hash || "#proposta").slice(1); if (VIEWS.indexOf(v) < 0) v = "proposta";
+  VIEWS.forEach(function (x) { $("view-" + x).classList.toggle("active", x === v); });
+  Array.prototype.forEach.call(document.querySelectorAll("nav.tabs a"), function (a) { if (a.dataset.view === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+}
+function render() { renderProposta(); renderFila(); renderRegistro(); renderPainel(); show(); }
+function copy(text) {
+  try { navigator.clipboard.writeText(text).then(function () { toast("Mensagem copiada."); }, function () { toast("Não foi possível copiar: selecione o texto e use Ctrl+C.", true); }); }
+  catch (e) { toast("Não foi possível copiar: selecione o texto e use Ctrl+C.", true); }
+}
+
+/* ---------- Eventos ---------- */
+$("opSelect").onchange = function () { S.cur = this.value; save(); renderProposta(); };
+$("profileForm").addEventListener("change", function (e) {
+  var k = e.target.dataset.k; if (!k) return; var o = cur(); o.p[k] = e.target.value;
+  if (k === "civil" && CASADO.indexOf(o.p.civil) < 0) o.p.regime = "—";
+  if (k === "civil" && CASADO.indexOf(o.p.civil) >= 0 && o.p.regime === "—") o.p.regime = "—";
+  save(); renderProposta();
+});
+$("genBtn").onclick = function () { var o = cur(); o.lista = true; stamp(o, "Lista de documentos gerada (" + required(o.p).filter(function (r) { return !r.internal; }).length + " itens) e mensagem pronta"); save(); renderProposta(); toast("Lista gerada. Copie a mensagem e envie ao cliente."); };
+$("copyBtn").onclick = function () { copy($("msgBox").value); };
+$("fOrigem").onchange = renderRegistro; $("fStatus").onchange = renderRegistro;
+$("resetBtn").onclick = function () { S = seedState(); save(); location.hash = "#proposta"; render(); toast("Demonstração reiniciada."); };
+window.addEventListener("hashchange", show);
+
+load(); render(); renderDiag();
+})();
+</script>
+</body>
+</html>
